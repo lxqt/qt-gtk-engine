@@ -25,14 +25,41 @@
 #include <QByteArray>
 #include <QTextStream>
 #include <QDebug>
+#include <QStyleOption>
+
+static void add_button_css(QTextStream& stream) {
+  QStyle* style = qApp->style();
+  const QPalette& palette = qApp->palette();
+
+  QStyleOptionButton opt;
+  int border = style->pixelMetric(QStyle::PM_DefaultFrameWidth, &opt);
+  int padding = style->pixelMetric(QStyle::PM_ButtonMargin, &opt);
+  int default_ind = style->pixelMetric(QStyle::PM_ButtonDefaultIndicator, &opt);
+
+  stream <<
+  "GtkButton {\n"
+  "background-color:" << palette.color(QPalette::Normal, QPalette::Button).name() << ";\n" <<
+  "color:" << palette.color(QPalette::Normal, QPalette::ButtonText).name() << ";\n" <<
+  "padding:" << padding << ";\n"
+  "border:" << border << ";\n"
+  "}\n"
+
+  "GtkButton:prelight {\n"
+  "background-color:#000000;"
+  "}\n";
+}
 
 GtkCssProvider* qt_css_provider_new() {
   QStyle* style = qApp->style();
   QByteArray str;
   QTextStream stream(&str);
+  QStyleOption opt;
+  int border = style->pixelMetric(QStyle::PM_DefaultFrameWidth, &opt);
+
   stream << "* {\n" <<
   "background-color:" << qApp->palette().color(QPalette::Normal, QPalette::Window).name() << ";\n" <<
   "color:" << qApp->palette().color(QPalette::Normal, QPalette::WindowText).name() << ";\n" <<
+  "border:" << border << ";\n"
   "}\n"
 
   "*:insensitive {\n" <<
@@ -51,20 +78,12 @@ GtkCssProvider* qt_css_provider_new() {
   "color:" << qApp->palette().color(QPalette::Normal, QPalette::Text).name() << ";\n" <<
   "}\n"
 
-  "GtkButton {\n"
-  "background-color:" << qApp->palette().color(QPalette::Normal, QPalette::Button).name() << ";\n" <<
-  "color:" << qApp->palette().color(QPalette::Normal, QPalette::ButtonText).name() << ";\n" <<
-  "}\n"
-  
-  "GtkButton:prelight {\n"
-  "background-color:#000000;"
-  "}\n"
-
   "GtkTooltip {\n"
   "background-color:" << qApp->palette().color(QPalette::Normal, QPalette::ToolTipBase).name() << ";\n" <<
   "color:" << qApp->palette().color(QPalette::Normal, QPalette::ToolTipText).name() << ";\n" <<
   "}\n";
 
+  add_button_css(stream);
   // qDebug("%d, %s", str.length(), str.constData());
   stream.flush();
 

@@ -393,11 +393,17 @@ static void render_slider(GtkThemingEngine* engine,
     // QStyleOptionSlider opt;
     QStyleOptionSlider opt;
     initStyleOptionState(opt, state);
+    opt.orientation = width > height ? Qt::Horizontal : Qt::Vertical;
+    if(opt.orientation == Qt::Vertical) {
+      height += width * 2;
+      y -= width;
+    }
     opt.subControls = QStyle::SC_ScrollBarSlider;
     ThemePainter p(cr, x, y, width, height, opt);
-    // style->drawControl(QStyle::CE_ScrollBarSlider, &opt, p.painter());
+    qDebug() << "adjusted:" << opt.rect;
+    QRect subRect = style->subControlRect(QStyle::CC_ScrollBar, &opt, QStyle::SC_ScrollBarSlider, NULL);
+    qDebug() << "subControlRect: " << subRect;
     style->drawComplexControl(QStyle::CC_ScrollBar, &opt, p.painter());
-    // style_functions->draw_scrollbar_slider(cr, engine, &scrollbar, x, y, width, height);
   }
   else {
     // style_functions->draw_slider_button(cr, engine, &slider, x, y, width, height);
