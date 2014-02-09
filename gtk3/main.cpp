@@ -85,6 +85,9 @@ static void render_background(GtkThemingEngine* engine,
   else if(gtk_widget_path_is_type(widgetPath, GTK_TYPE_LABEL) || gtk_widget_path_is_type(widgetPath, GTK_TYPE_IMAGE)) {
     // transparent background!
   }
+  else if(gtk_theming_engine_has_class(engine, GTK_STYLE_CLASS_MENU) || gtk_theming_engine_has_class(engine, GTK_STYLE_CLASS_MENUITEM)) {
+    // do not paint menus & menu items here.
+  }
   else if(gtk_theming_engine_has_class(engine, GTK_STYLE_CLASS_SCROLLBAR)) {
     QStyleOptionSlider opt;
     initStyleOptionState(opt, state);
