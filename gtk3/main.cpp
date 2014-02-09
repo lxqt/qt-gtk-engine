@@ -68,7 +68,10 @@ static void render_background(GtkThemingEngine* engine,
     // TODO: draw selected cell
   }
   else if(gtk_theming_engine_has_class(engine, "tooltip")) {
-    // TODO: draw tooltip
+    QStyleOptionFrame opt;
+    initStyleOptionState(opt, state);
+    ThemePainter p(cr, x, y, width, height, opt);
+    style->drawPrimitive(QStyle::PE_PanelTipLabel, &opt, p.painter());
   }
   else if(gtk_theming_engine_has_class(engine, "cell") &&
           gtk_theming_engine_has_class(engine, "icon-view")) {
@@ -83,17 +86,22 @@ static void render_background(GtkThemingEngine* engine,
     // transparent background!
   }
   else if(gtk_theming_engine_has_class(engine, GTK_STYLE_CLASS_SCROLLBAR)) {
-    qDebug() << "scrollbar:" << x << y << width << height;
-    
+    QStyleOptionSlider opt;
+    initStyleOptionState(opt, state);
+    opt.orientation = width > height ? Qt::Horizontal : Qt::Vertical;
+    if(gtk_theming_engine_has_class(engine, "button")) {
+      // qDebug() << "scrollbar button:" << x << y << width << height;
+    }
+    else {
+      // qDebug() << "scrollbar:" << x << y << width << height;
+      opt.subControls = QStyle::SC_ScrollBarGroove;
+      ThemePainter p(cr, x, y, width, height, opt);
+      style->drawComplexControl(QStyle::CC_ScrollBar, &opt, p.painter());
+    }
   }
   else {
     GTK_THEMING_ENGINE_CLASS(qt_engine_parent_class)->render_background(engine, cr, x, y, width, height);
-    //QColor clr = qApp->palette().color(QPalette::Normal, QPalette::Window);
-    //cairo_set_source_rgb(cr, clr.redF(), clr.greenF(), clr.blueF());
-    //cairo_rectangle(cr, 0, 0, width, height);
-    //cairo_fill(cr);
   }
-//  QT_ENGINE(engine)->theme_engine->render_background(engine, cr, x, y, width, height);
 }
 
 static void render_frame(GtkThemingEngine* engine,
@@ -130,6 +138,8 @@ static void render_frame(GtkThemingEngine* engine,
     initStyleOptionState(opt, state);
     if(state & GTK_STATE_FLAG_ACTIVE)
       opt.state |= QStyle::State_Sunken;
+    if(gtk_theming_engine_has_class(engine, GTK_STYLE_CLASS_DEFAULT))
+      opt.features |= QStyleOptionButton::DefaultButton;
     style->drawControl(QStyle::CE_PushButton, &opt, p.painter());
   }
   else if(gtk_theming_engine_has_class(engine, "spinbutton") &&
@@ -154,15 +164,7 @@ static void render_frame(GtkThemingEngine* engine,
   }
   else if(gtk_widget_path_is_type(path, GTK_TYPE_SCROLLBAR) &&
           gtk_theming_engine_has_class(engine, GTK_STYLE_CLASS_TROUGH)) {
-    /*
-    ScrollBarParameters scrollbar;
-    scrollbar.horizontal = TRUE;
-    scrollbar.junction   = 0; //qt_scrollbar_get_junction (widget);
-      scrollbar.horizontal = width >= height;
 
-    style_functions->draw_scrollbar_trough(cr, engine, &scrollbar,
-                                           x, y, width, height);
-    */
   }
   else if(gtk_theming_engine_has_class(engine, "progressbar")) {
 /*    style_functions->draw_progressbar_fill(cr, engine, &progressbar,
@@ -178,6 +180,7 @@ static void render_frame(GtkThemingEngine* engine,
     */
   }
   else if(gtk_theming_engine_has_class(engine, GTK_STYLE_CLASS_MENUITEM)) {
+    // qDebug() << "draw MenuItem:" << QRect(x, y, width, height);
     QStyleOptionMenuItem opt;
     ThemePainter p(cr, x, y, width, height, opt);
     initStyleOptionState(opt, state);
@@ -203,9 +206,6 @@ static void render_frame(GtkThemingEngine* engine,
     style->drawControl(QStyle::CE_MenuBarEmptyArea, &opt, p.painter());
   }
   else if(gtk_theming_engine_has_class(engine, GTK_STYLE_CLASS_SCROLLBAR)) {
-    qDebug() << "scrollbar:" << x << y << width << height;
-    // stepper.stepper = CL_STEPPER_UNKNOWN;
-    // style_functions->draw_scrollbar_stepper(cr, engine, &scrollbar, &stepper, x, y, width, height);
   }
   else if(gtk_theming_engine_has_class(engine, GTK_STYLE_CLASS_TOOLBAR) ||
           gtk_theming_engine_has_class(engine, GTK_STYLE_CLASS_DOCK)) {
@@ -214,13 +214,11 @@ static void render_frame(GtkThemingEngine* engine,
 #endif
   }
   else if(gtk_theming_engine_has_class(engine, GTK_STYLE_CLASS_MENU)) {
+    // qDebug() << "menu :" << QRect(x, y, width, height);
     // why this does not work?
     QStyleOptionMenuItem opt;
     ThemePainter p(cr, x, y, width, height, opt);
-    opt.state = QStyle::State_None;
-    opt.checkType = QStyleOptionMenuItem::NotCheckable;
-    opt.maxIconWidth = 0;
-    opt.tabWidth = 0;
+    opt.state = QStyle::State_Enabled;
     style->drawPrimitive(QStyle::PE_PanelMenu, &opt, p.painter());
   }
   else {
@@ -389,21 +387,15 @@ static void render_slider(GtkThemingEngine* engine,
   QStyle* style = qApp->style();
   GtkStateFlags state = gtk_theming_engine_get_state(engine);
   if(gtk_theming_engine_has_class(engine, GTK_STYLE_CLASS_SLIDER)) {
-    qDebug() << "slider: " << QRect(x, y, width, height);
-    // QStyleOptionSlider opt;
+    // qDebug() << "scrollbar slider: " << QRect(x, y, width, height);
     QStyleOptionSlider opt;
     initStyleOptionState(opt, state);
-    opt.orientation = width > height ? Qt::Horizontal : Qt::Vertical;
-    if(opt.orientation == Qt::Vertical) {
-      height += width * 2;
-      y -= width;
-    }
+    opt.orientation = (orientation == GTK_ORIENTATION_HORIZONTAL ? Qt::Horizontal : Qt::Vertical);
+    opt.state = QStyle::State_Enabled;
     opt.subControls = QStyle::SC_ScrollBarSlider;
-    ThemePainter p(cr, x, y, width, height, opt);
-    qDebug() << "adjusted:" << opt.rect;
-    QRect subRect = style->subControlRect(QStyle::CC_ScrollBar, &opt, QStyle::SC_ScrollBarSlider, NULL);
-    qDebug() << "subControlRect: " << subRect;
-    style->drawComplexControl(QStyle::CC_ScrollBar, &opt, p.painter());
+     ThemePainter p(cr, x, y, width, height, opt);
+     style->drawComplexControl(QStyle::CC_ScrollBar, &opt, p.painter());
+    return;
   }
   else {
     // style_functions->draw_slider_button(cr, engine, &slider, x, y, width, height);

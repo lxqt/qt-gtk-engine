@@ -48,6 +48,7 @@ private:
   QPainter painter_;
   QImage buffer_;
   cairo_t* cr_;
+  cairo_surface_t* surface_;
   double x_;
   double y_;
 };

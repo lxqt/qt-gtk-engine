@@ -45,7 +45,15 @@ static void add_button_css(QTextStream& stream) {
   "}\n"
 
   "GtkButton:prelight {\n"
-  "background-color:#000000;"
+  "background-color:transparent;"
+  "}\n";
+}
+
+static void add_scrollbar_css(QTextStream& stream) {
+  QStyle* style = qApp->style();
+  QStyleOptionSlider opt;
+  stream << "GtkScrollBar {\n"
+  "-GtkRange-stepper-size:" << style->pixelMetric(QStyle::PM_ScrollBarExtent, &opt) << ";\n"
   "}\n";
 }
 
@@ -55,7 +63,7 @@ GtkCssProvider* qt_css_provider_new() {
   QTextStream stream(&str);
   QStyleOption opt;
   int border = style->pixelMetric(QStyle::PM_DefaultFrameWidth, &opt);
-
+  
   stream << "* {\n" <<
   "background-color:" << qApp->palette().color(QPalette::Normal, QPalette::Window).name() << ";\n" <<
   "color:" << qApp->palette().color(QPalette::Normal, QPalette::WindowText).name() << ";\n" <<
@@ -83,9 +91,10 @@ GtkCssProvider* qt_css_provider_new() {
   "color:" << qApp->palette().color(QPalette::Normal, QPalette::ToolTipText).name() << ";\n" <<
   "}\n";
 
+  add_scrollbar_css(stream);
   add_button_css(stream);
-  // qDebug("%d, %s", str.length(), str.constData());
   stream.flush();
+  qDebug("%d, %s", str.length(), str.constData());
 
   GtkCssProvider* provider = gtk_css_provider_new();
   GError* err = NULL;

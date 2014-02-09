@@ -21,15 +21,34 @@
 #include "themepainter.h"
 #include <QApplication>
 #include <QStyleOption>
+#include <QDebug>
 
 ThemePainter::ThemePainter(cairo_t* cr, double x, double y, double width, double height, QStyleOption& opt):
   cr_(cr),
   x_(x),
   y_(y),
   buffer_(width, height, QImage::Format_ARGB32) {
-  buffer_.fill(qApp->palette().color(QPalette::Normal, QPalette::Window));
 
-  cairo_save(cr_);
+  const unsigned char* data = buffer_.constBits();
+  int stride_width = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, buffer_.width());
+  surface_ = cairo_image_surface_create_for_data((unsigned char*)data, CAIRO_FORMAT_ARGB32, buffer_.width(), buffer_.height(), stride_width);
+
+  buffer_.fill(Qt::transparent); // FIXME: is this needed?
+  // NOTE: when painting rounded rectangles, QPainter uses antialiasing
+  // some colors will be blended with the current content.
+  // So theoratically we need to copy current content of cairo to QPainter to
+  // get perfect pixel-exact rendering. This is a little bit wasteful, though.
+  // FIXME: is there a better way to do this?
+
+  // copy current content of cr to our buffer
+  // Reference: http://lists.cairographics.org/archives/cairo/2007-June/010877.html
+  cairo_t* cr2 = cairo_create(surface_);
+  cairo_matrix_t matrix;
+  cairo_get_matrix(cr, &matrix);
+  cairo_set_source_surface(cr2, cairo_get_target(cr), -matrix.x0, -matrix.y0);
+  cairo_paint(cr2);
+  cairo_destroy(cr2);
+
   opt.rect = QRect(0, 0, width, height);
   opt.palette = qApp->palette();
 
@@ -39,14 +58,10 @@ ThemePainter::ThemePainter(cairo_t* cr, double x, double y, double width, double
 ThemePainter::~ThemePainter() {
   painter_.end();
 
-  const unsigned char* data = buffer_.constBits();
-  int stride_width = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, buffer_.width());
-  cairo_surface_t* surface = cairo_image_surface_create_for_data((unsigned char*)data, CAIRO_FORMAT_ARGB32, buffer_.width(), buffer_.height(), stride_width);
-  cairo_set_source_surface(cr_, surface, 0, 0);
-  // cairo_paint(cr_);
-  cairo_rectangle(cr_, x_, y_, buffer_.width(), buffer_.height());
-  cairo_fill(cr_);
-  cairo_surface_destroy(surface);
-
-  cairo_restore(cr_);
+  cairo_set_source_surface(cr_, surface_, x_, y_);
+  // cairo_mask_surface(cr_, surface, x_, y_);
+  cairo_paint(cr_);
+  // cairo_rectangle(cr_, x_, y_, buffer_.width(), buffer_.height());
+  // cairo_fill(cr_);
+  cairo_surface_destroy(surface_);
 }
